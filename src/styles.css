@@ -1,0 +1,752 @@
+:root {
+  --bg: #151412;
+  --panel: rgb(12 11 10 / 0.5);
+  --panel-strong: rgb(215 199 168 / 0.08);
+  --line: rgb(238 233 223 / 0.13);
+  --text: #eee9df;
+  --text-strong: #fff7e8;
+  --muted: #bdb3a4;
+  --dim: #a99e8f;
+  --accent: #d7c7a8;
+  --danger: #e36b5a;
+  color: #eee9df;
+  background: var(--bg);
+  font-family:
+    "Yu Mincho", "Hiragino Mincho ProN", "Yu Gothic UI", "Meiryo", serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-width: 320px;
+  height: 100%;
+  margin: 0;
+}
+
+button {
+  font: inherit;
+}
+
+.layout {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(230px, 0.72fr) minmax(480px, 1.62fr) minmax(250px, 0.72fr);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 52% 18%, rgb(215 199 168 / 0.055), transparent 34%),
+    linear-gradient(90deg, rgb(238 233 223 / 0.055) 1px, transparent 1px),
+    linear-gradient(180deg, rgb(238 233 223 / 0.04) 1px, transparent 1px),
+    var(--bg);
+  background-size: 100% 100%, 44px 44px, 44px 44px;
+}
+
+.layout::before {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    linear-gradient(90deg, rgb(21 20 18 / 0.92), rgb(21 20 18 / 0.86) 38%, rgb(21 20 18 / 0.94)),
+    linear-gradient(180deg, rgb(21 20 18 / 0.58), rgb(21 20 18 / 0.92)),
+    url("../visuals/office-night.png") center / cover;
+  opacity: 0.24;
+  transition:
+    background 520ms ease,
+    opacity 520ms ease;
+  content: "";
+}
+
+.layout[data-scene="weekday"]::before {
+  background:
+    linear-gradient(90deg, rgb(21 20 18 / 0.9), rgb(21 20 18 / 0.84) 42%, rgb(21 20 18 / 0.92)),
+    linear-gradient(180deg, rgb(21 20 18 / 0.52), rgb(21 20 18 / 0.9)),
+    url("../visuals/weekday-street.png") center / cover;
+  opacity: 0.26;
+}
+
+.layout::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgb(238 233 223 / 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, rgb(238 233 223 / 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  content: "";
+}
+
+.side,
+.story,
+.journal {
+  min-width: 0;
+  padding: clamp(20px, 3vw, 38px);
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: clamp(48px, 14vh, 150px);
+  height: 100vh;
+  overflow: hidden;
+  border-right: 1px solid var(--line);
+  background: transparent;
+}
+
+.story {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  height: 100vh;
+  overflow: hidden;
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.journal {
+  height: 100vh;
+  overflow-y: auto;
+  background: rgb(0 0 0 / 0.08);
+  scrollbar-color: rgb(215 199 168 / 0.3) transparent;
+  scrollbar-width: thin;
+}
+
+.eyebrow,
+.chapter-meta,
+.journal-head,
+.meter-label span {
+  color: var(--dim);
+  font-family:
+    "Yu Gothic UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  max-width: 11em;
+  margin-top: 10px;
+  color: var(--text-strong);
+  font-size: clamp(23px, 2.45vw, 32px);
+  font-weight: 700;
+  line-height: 1.34;
+}
+
+h2 {
+  max-width: 14em;
+  color: var(--text-strong);
+  font-size: clamp(32px, 4.4vw, 58px);
+  font-weight: 700;
+  line-height: 1.16;
+}
+
+.story-reader {
+  position: relative;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.story-reader::before,
+.story-reader::after {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  height: 28px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 160ms ease;
+  content: "";
+}
+
+.story-reader::before {
+  top: 0;
+  background: linear-gradient(180deg, rgb(21 20 18 / 0.58), rgb(21 20 18 / 0));
+}
+
+.story-reader::after {
+  bottom: 0;
+  background: linear-gradient(0deg, rgb(21 20 18 / 0.64), rgb(21 20 18 / 0));
+}
+
+.story-reader.has-overflow:not(.is-at-top)::before,
+.story-reader.has-overflow:not(.is-at-bottom)::after {
+  opacity: 1;
+}
+
+.story-scroll {
+  height: 100%;
+  min-height: 0;
+  max-width: 812px;
+  overflow-y: auto;
+  padding-right: 14px;
+  overscroll-behavior: contain;
+  scrollbar-color: rgb(215 199 168 / 0.42) transparent;
+  scrollbar-width: thin;
+}
+
+.story-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.story-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.story-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgb(215 199 168 / 0.28);
+}
+
+.cast {
+  display: grid;
+  gap: 14px;
+  max-width: 24em;
+}
+
+.cast p {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.cast p.has-portrait {
+  grid-template-columns: 68px 1fr;
+  column-gap: 12px;
+  align-items: start;
+}
+
+.portrait {
+  grid-row: span 2;
+  width: 68px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid rgb(238 233 223 / 0.16);
+  filter: saturate(0.72) contrast(0.95);
+  box-shadow: 0 10px 22px rgb(0 0 0 / 0.18);
+}
+
+.cast strong {
+  color: var(--text-strong);
+  font-size: 15px;
+}
+
+.cast span {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.cast p.is-updated span {
+  color: var(--danger);
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.tabs button {
+  min-height: 34px;
+  border: 1px solid rgb(238 233 223 / 0.14);
+  color: var(--dim);
+  background: rgb(255 255 255 / 0.025);
+  cursor: pointer;
+  font-family:
+    "Yu Gothic UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tabs button:hover,
+.tabs button.is-active {
+  border-color: var(--accent);
+  color: var(--text-strong);
+  background: var(--panel-strong);
+}
+
+.side-note {
+  margin-top: 18px;
+  color: #8f867a;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.item-card a {
+  grid-column: 2;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 3px 8px;
+  border: 1px solid rgb(238 233 223 / 0.16);
+  color: var(--accent);
+  font-family:
+    "Yu Gothic UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.item-card,
+.note-card {
+  grid-template-columns: 58px 1fr;
+  column-gap: 12px;
+  align-items: start;
+}
+
+.panel-thumb {
+  grid-row: span 3;
+  width: 58px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid rgb(238 233 223 / 0.14);
+  filter: saturate(0.72) contrast(0.95);
+  box-shadow: 0 8px 18px rgb(0 0 0 / 0.16);
+}
+
+.item-card a:hover {
+  border-color: var(--accent);
+  background: var(--panel-strong);
+}
+
+.tagline {
+  max-width: 18em;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.9;
+}
+
+.scene-card {
+  display: grid;
+  gap: 10px;
+  width: min(100%, 320px);
+}
+
+.scene-card__image {
+  position: relative;
+  min-height: 170px;
+  overflow: hidden;
+  border: 1px solid rgb(238 233 223 / 0.2);
+  background:
+    linear-gradient(180deg, rgb(21 20 18 / 0.02), rgb(21 20 18 / 0.22)),
+    url("../visuals/office-night.png") center / cover;
+  box-shadow:
+    0 18px 36px rgb(0 0 0 / 0.28),
+    inset 0 0 0 1px rgb(255 247 232 / 0.04);
+}
+
+.scene-card__image::after {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgb(255 247 232 / 0.13), transparent 28%, rgb(0 0 0 / 0.18)),
+    linear-gradient(180deg, transparent 62%, rgb(0 0 0 / 0.28));
+  content: "";
+}
+
+.layout[data-scene="weekday"] .scene-card__image {
+  background:
+    linear-gradient(180deg, rgb(21 20 18 / 0), rgb(21 20 18 / 0.18)),
+    url("../visuals/weekday-street.png") center / cover;
+}
+
+.layout[data-scene="apartment"] .scene-card__image {
+  background:
+    linear-gradient(180deg, rgb(21 20 18 / 0), rgb(21 20 18 / 0.2)),
+    url("../visuals/scene-apartment-night.png") center / cover;
+}
+
+.layout[data-scene="curry"] .scene-card__image {
+  background:
+    linear-gradient(180deg, rgb(21 20 18 / 0), rgb(21 20 18 / 0.18)),
+    url("../visuals/scene-curry.png") center / cover;
+}
+
+.layout[data-scene="decision"] .scene-card__image {
+  background:
+    linear-gradient(180deg, rgb(21 20 18 / 0), rgb(21 20 18 / 0.22)),
+    url("../visuals/scene-decision-desk.png") center / cover;
+}
+
+.layout[data-scene="delivery"] .scene-card__image {
+  background:
+    linear-gradient(180deg, rgb(21 20 18 / 0), rgb(21 20 18 / 0.2)),
+    url("../visuals/scene-delivery-hill.png") center / cover;
+}
+
+.layout[data-scene="family"] .scene-card__image {
+  background:
+    linear-gradient(180deg, rgb(21 20 18 / 0), rgb(21 20 18 / 0.18)),
+    url("../visuals/scene-family-pear.png") center / cover;
+}
+
+.layout[data-scene="meeting"] .scene-card__image {
+  background:
+    linear-gradient(180deg, rgb(21 20 18 / 0), rgb(21 20 18 / 0.2)),
+    url("../visuals/scene-meeting-room.png") center / cover;
+}
+
+.layout[data-scene="restroom"] .scene-card__image {
+  background:
+    linear-gradient(180deg, rgb(21 20 18 / 0), rgb(21 20 18 / 0.22)),
+    url("../visuals/scene-restroom-market.png") center / cover;
+}
+
+.layout[data-scene="warehouse"] .scene-card__image {
+  background:
+    linear-gradient(180deg, rgb(21 20 18 / 0), rgb(21 20 18 / 0.2)),
+    url("../visuals/scene-warehouse.png") center / cover;
+}
+
+.scene-card span {
+  color: var(--accent);
+  font-family:
+    "Yu Gothic UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.path-summary {
+  display: grid;
+  gap: 12px;
+  max-width: 21em;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.path-label {
+  color: var(--dim);
+  font-family:
+    "Yu Gothic UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.path-summary dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.path-summary div {
+  display: grid;
+  grid-template-columns: 4.5em 1fr;
+  gap: 12px;
+  align-items: center;
+  min-height: 30px;
+}
+
+.path-summary dt,
+.path-summary dd {
+  margin: 0;
+}
+
+.path-summary dt {
+  color: #8f867a;
+  font-family:
+    "Yu Gothic UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.path-summary dd {
+  color: var(--text-strong);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.chapter-meta,
+.journal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.progress-rail {
+  height: 2px;
+  max-width: 800px;
+  overflow: hidden;
+  background: rgb(238 233 223 / 0.09);
+}
+
+.progress-rail span {
+  display: block;
+  width: 3%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), rgb(227 107 90 / 0.78));
+  transition: width 260ms ease;
+}
+
+.body {
+  display: grid;
+  gap: 18px;
+  max-width: 800px;
+  color: #ddd4c6;
+  font-size: clamp(17px, 1.55vw, 20px);
+  line-height: 2.08;
+}
+
+.clue-mark {
+  position: relative;
+  color: #f3d7c8;
+  text-decoration-line: underline;
+  text-decoration-color: var(--danger);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.22em;
+  text-decoration-style: wavy;
+}
+
+.result-line {
+  padding: 14px 16px;
+  border-left: 2px solid var(--accent);
+  color: #f6efe4;
+  background: rgb(215 199 168 / 0.07);
+}
+
+.ending-card {
+  position: relative;
+  padding: clamp(20px, 3vw, 34px);
+  border: 1px solid rgb(238 233 223 / 0.18);
+  color: #fff7e8;
+  background:
+    linear-gradient(135deg, rgb(215 199 168 / 0.14), rgb(21 20 18 / 0.22)),
+    rgb(12 11 10 / 0.48);
+  box-shadow: 0 20px 48px rgb(0 0 0 / 0.28);
+}
+
+.ending-card::before {
+  display: block;
+  width: 42px;
+  height: 2px;
+  margin-bottom: 18px;
+  background: var(--accent);
+  content: "";
+}
+
+.choices {
+  display: grid;
+  gap: 10px;
+  max-width: 800px;
+  flex-shrink: 0;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  background: linear-gradient(180deg, rgb(21 20 18 / 0), rgb(21 20 18 / 0.76) 28%);
+}
+
+.choices button,
+.journal-head button {
+  border: 1px solid rgb(238 233 223 / 0.18);
+  color: var(--text);
+  background: rgb(255 255 255 / 0.035);
+  cursor: pointer;
+}
+
+.choices button {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  min-height: 76px;
+  padding: 15px 17px;
+  text-align: left;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    transform 140ms ease;
+}
+
+.choices button:hover,
+.choices button:focus-visible,
+.journal-head button:hover {
+  border-color: var(--accent);
+  background: var(--panel-strong);
+}
+
+.choices button:hover,
+.choices button:focus-visible {
+  transform: translateY(-1px);
+}
+
+.choices span {
+  color: var(--text-strong);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.choices small {
+  color: var(--muted);
+  font-family:
+    "Yu Gothic UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.utility-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.journal-head button {
+  width: 36px;
+  height: 36px;
+}
+
+.journal-head button:disabled {
+  cursor: default;
+  opacity: 0.38;
+}
+
+.log-entry {
+  display: grid;
+  gap: 8px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.log-entry strong {
+  color: var(--text-strong);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.log-entry span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.log-meta {
+  color: var(--dim);
+  font-family:
+    "Yu Gothic UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.journal ol {
+  display: grid;
+  gap: 15px;
+  margin: 24px 0 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.75;
+  list-style: none;
+}
+
+.journal li {
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgb(238 233 223 / 0.1);
+}
+
+@media (max-width: 1040px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .side,
+  .story,
+  .journal {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .side {
+    display: grid;
+    gap: 22px;
+    height: auto;
+    overflow: visible;
+  }
+
+  .scene-card {
+    width: 100%;
+  }
+
+  .path-summary {
+    max-width: none;
+  }
+
+  .story {
+    height: 100svh;
+  }
+
+  .journal {
+    height: auto;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 560px) {
+  .side,
+  .story,
+  .journal {
+    padding: 18px;
+  }
+
+  h1 {
+    max-width: 10em;
+  }
+
+  .chapter-meta,
+  .journal-head {
+    align-items: flex-start;
+  }
+
+  .chapter-meta {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .choices button {
+    min-height: 82px;
+  }
+
+  .story {
+    gap: 14px;
+  }
+
+  .story-scroll {
+    padding-right: 4px;
+  }
+
+  .body {
+    gap: 17px;
+    line-height: 2;
+  }
+
+  .scene-card__image {
+    min-height: 130px;
+  }
+
+  .ending-card {
+    padding: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choices button,
+  .story-reader::before,
+  .story-reader::after {
+    transition: none;
+  }
+}
