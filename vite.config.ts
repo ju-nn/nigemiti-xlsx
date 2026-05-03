@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: '/nigemichi-xlsx/',
+  base: '/nigemiti-xlsx/',
 });
