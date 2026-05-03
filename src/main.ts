@@ -12,6 +12,9 @@ type State = {
   finished: boolean;
   history: StateSnapshot[];
   log: LogEntry[];
+  textSize: 'small' | 'medium' | 'large';
+  animations: boolean;
+  viewingLog: boolean;
 };
 
 type SidePanel = 'people' | 'items' | 'notes' | 'log';
@@ -40,7 +43,7 @@ type Beat = {
 };
 
 const has = (state: State, flag: string) => state.flags.includes(flag);
-const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const prefersReducedMotion = () => !state.animations || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SAVE_KEY = 'escape-xlsx-save-v1';
 const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
 
@@ -60,6 +63,9 @@ const initialState = (): State => ({
   finished: false,
   history: [],
   log: [],
+  textSize: 'medium',
+  animations: true,
+  viewingLog: false,
 });
 
 const beats: Beat[] = [
@@ -865,7 +871,13 @@ app.innerHTML = `
     </aside>
 
     <section class="story" aria-live="polite">
-      <div class="chapter-meta"><span id="year"></span><span id="progress"></span></div>
+      <div class="chapter-meta">
+        <div><span id="year"></span><span id="progress"></span></div>
+        <div class="reader-actions">
+          <button id="back" class="reader-action" type="button">戻る</button>
+          <button id="log-toggle" class="reader-action" type="button">ログ</button>
+        </div>
+      </div>
       <div class="progress-rail" aria-hidden="true"><span id="progress-bar"></span></div>
       <h2 id="title"></h2>
       <div class="story-reader" id="story-reader">
@@ -879,16 +891,11 @@ app.innerHTML = `
     <aside class="journal">
       <div class="journal-head">
         <span id="side-title">人物メモ</span>
-        <div class="utility-buttons">
-          <button id="back" type="button" aria-label="back">戻</button>
-          <button id="restart" type="button" aria-label="restart">↻</button>
-        </div>
       </div>
       <div class="tabs" role="tablist" aria-label="side panel">
         <button type="button" data-panel="people">人物</button>
         <button type="button" data-panel="items">持ち物</button>
         <button type="button" data-panel="notes">メモ</button>
-        <button type="button" data-panel="log">ログ</button>
       </div>
       <div class="cast" id="cast"></div>
     </aside>
@@ -911,25 +918,23 @@ const nodes = {
   cast: document.querySelector<HTMLDivElement>('#cast'),
   tabs: document.querySelectorAll<HTMLButtonElement>('.tabs button'),
   back: document.querySelector<HTMLButtonElement>('#back'),
-  restart: document.querySelector<HTMLButtonElement>('#restart'),
+  logToggle: document.querySelector<HTMLButtonElement>('#log-toggle'),
 };
 
 nodes.back?.addEventListener('click', () => {
   goBack();
 });
 
-nodes.restart?.addEventListener('click', () => {
-  state = initialState();
-  addCurrentLogEntry();
-  localStorage.removeItem(SAVE_KEY);
-  document.title = '逃げ道.xlsx';
+nodes.logToggle?.addEventListener('click', () => {
+  state.viewingLog = !state.viewingLog;
+  saveState();
   render();
 });
 
 nodes.tabs.forEach((button) => {
   button.addEventListener('click', () => {
     const panel = button.dataset.panel;
-    if (panel === 'people' || panel === 'items' || panel === 'notes' || panel === 'log') {
+    if (panel === 'people' || panel === 'items' || panel === 'notes') {
       state.sidePanel = panel;
       saveState();
       render();
@@ -939,8 +944,28 @@ nodes.tabs.forEach((button) => {
 
 nodes.storyScroll?.addEventListener('scroll', updateReaderState);
 
+nodes.cast?.addEventListener('click', (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLButtonElement)) return;
+
+  const textSize = target.dataset.textSize;
+  if (textSize === 'small' || textSize === 'medium' || textSize === 'large') {
+    state.textSize = textSize;
+    saveState();
+    render();
+    return;
+  }
+
+  if (target.dataset.setting === 'animations') {
+    state.animations = !state.animations;
+    saveState();
+    render();
+  }
+});
+
 function applyChoice(choice: Choice): void {
   pushHistory();
+  state.viewingLog = false;
   state.flags.push(choice.tag);
   state.choices.push(choice.label);
   state.inlineResult = choice.result;
@@ -951,6 +976,7 @@ function applyChoice(choice: Choice): void {
 
 function next(): void {
   pushHistory();
+  state.viewingLog = false;
   if (state.beat >= beats.length - 1) {
     state.finished = true;
   } else {
@@ -982,6 +1008,9 @@ function snapshot(current: State): StateSnapshot {
     sidePanel: current.sidePanel,
     finished: current.finished,
     log: current.log.map((entry) => ({ ...entry, lines: [...entry.lines] })),
+    textSize: current.textSize,
+    animations: current.animations,
+    viewingLog: current.viewingLog,
   };
 }
 
@@ -1010,6 +1039,9 @@ function inflateState(saved: Partial<StateSnapshot> | null): State {
             lines: entry.lines.filter((line): line is string => typeof line === 'string'),
           }))
       : [],
+    textSize: saved.textSize === 'small' || saved.textSize === 'medium' || saved.textSize === 'large' ? saved.textSize : 'medium',
+    animations: typeof saved.animations === 'boolean' ? saved.animations : true,
+    viewingLog: Boolean(saved.viewingLog),
   };
 }
 
@@ -1035,6 +1067,15 @@ function goBack(): void {
   if (!previous) return;
   const history = [...state.history];
   state = { ...inflateState(previous), history };
+  state.viewingLog = false;
+  render();
+}
+
+function restartFromEnding(): void {
+  state = initialState();
+  addCurrentLogEntry();
+  localStorage.removeItem(SAVE_KEY);
+  document.title = '逃げ道.xlsx';
   render();
 }
 
@@ -1067,6 +1108,9 @@ function render(): void {
     button.classList.toggle('is-active', button.dataset.panel === state.sidePanel);
   });
   if (nodes.back) nodes.back.disabled = state.history.length === 0;
+  if (nodes.logToggle) nodes.logToggle.classList.toggle('is-active', state.viewingLog);
+  document.documentElement.dataset.textSize = state.textSize;
+  document.documentElement.dataset.animations = state.animations ? 'on' : 'off';
 
   if (nodes.cast) {
     const side = renderSidePanel(state);
@@ -1094,7 +1138,35 @@ function render(): void {
     if (nodes.progressBar) nodes.progressBar.style.width = '100%';
     if (nodes.title) nodes.title.textContent = '佐久間の生活は、どこかへ着いた。';
     if (nodes.body) nodes.body.innerHTML = `<p class="ending-card">${getEnding()}</p>`;
-    if (nodes.choices) nodes.choices.innerHTML = '';
+    if (nodes.choices) {
+      nodes.choices.innerHTML = '<button class="continue" type="button"><span>最初から</span><small>逃げ道.xlsx を開き直す</small></button>';
+      nodes.choices.querySelector<HTMLButtonElement>('button')?.addEventListener('click', restartFromEnding);
+      animateChoices();
+    }
+    saveState();
+    return;
+  }
+
+  if (state.viewingLog) {
+    document.title = '読書ログ - 逃げ道.xlsx';
+    if (nodes.year) nodes.year.textContent = 'LOG';
+    if (nodes.progress) nodes.progress.textContent = '読書ログ';
+    if (nodes.progressBar) nodes.progressBar.style.width = `${Math.max(3, ((state.beat + 1) / beats.length) * 100)}%`;
+    if (nodes.title) nodes.title.textContent = '読書ログ';
+    if (nodes.body) {
+      nodes.body.innerHTML = renderMainLog(state);
+      nodes.storyScroll?.scrollTo({ top: 0 });
+      requestAnimationFrame(updateReaderState);
+    }
+    if (nodes.choices) {
+      nodes.choices.innerHTML = '<button class="continue" type="button"><span>本文に戻る</span><small>現在の場面へ</small></button>';
+      nodes.choices.querySelector<HTMLButtonElement>('button')?.addEventListener('click', () => {
+        state.viewingLog = false;
+        saveState();
+        render();
+      });
+      animateChoices();
+    }
     saveState();
     return;
   }
@@ -1190,7 +1262,7 @@ function animatePanelItems(): void {
 }
 
 function animateUpdatedNotes(): void {
-  if (!nodes.cast || state.sidePanel !== 'people') return;
+  if (!nodes.cast || state.sidePanel !== 'people' || state.viewingLog) return;
 
   nodes.cast.querySelectorAll<HTMLElement>('.is-updated span').forEach((node) => {
     const text = node.textContent ?? '';
@@ -1300,18 +1372,14 @@ function updateReaderState(): void {
 
 function renderSidePanel(current: State): { title: string; html: string } {
   if (current.sidePanel === 'items') {
-    return { title: '持ち物', html: renderItems(current) };
+    return { title: '持ち物', html: `${renderItems(current)}${renderSettings(current)}` };
   }
 
   if (current.sidePanel === 'notes') {
-    return { title: 'メモ', html: renderNotes(current) };
+    return { title: 'メモ', html: `${renderNotes(current)}${renderSettings(current)}` };
   }
 
-  if (current.sidePanel === 'log') {
-    return { title: '読書ログ', html: renderLog(current) };
-  }
-
-  return { title: '人物メモ', html: renderCastNotes(current) };
+  return { title: '人物メモ', html: `${renderCastNotes(current)}${renderSettings(current)}` };
 }
 
 function renderCastNotes(current: State): string {
@@ -1373,10 +1441,10 @@ function renderCastNotes(current: State): string {
   return [
     entry('佐久間 悠', '経理部決算管理課。数字は読めるが、自分の疲れだけはどの列に入れればいいかわからない。', false, assetPath('visuals/portrait-sakuma.png')),
     entry(mizunoKnown ? '水野 怜' : '???', mizunoText, isCurrentBeat(current, 'カレー') || isCurrentBeat(current, '水野も') || isCurrentBeat(current, '正解'), mizunoKnown ? assetPath('visuals/portrait-mizuno.png') : undefined),
-    entry(sidePeopleKnown ? '副業で会った人々' : '???', sidePeopleText, isCurrentBeat(current, 'Timee') || isCurrentBeat(current, '副業ブログ') || isCurrentBeat(current, 'Uber Eats')),
-    entry(takaseKnown ? '高瀬課長' : '???', takaseText, isCurrentBeat(current, '高瀬課長') || isCurrentBeat(current, '昇進') || isCurrentBeat(current, '謝罪')),
+    entry(sidePeopleKnown ? '副業で会った人々' : '???', sidePeopleText, isCurrentBeat(current, 'Timee') || isCurrentBeat(current, '副業ブログ') || isCurrentBeat(current, 'Uber Eats'), sidePeopleKnown ? assetPath('visuals/portrait-side-people.png') : undefined),
+    entry(takaseKnown ? '高瀬課長' : '???', takaseText, isCurrentBeat(current, '高瀬課長') || isCurrentBeat(current, '昇進') || isCurrentBeat(current, '謝罪'), takaseKnown ? assetPath('visuals/portrait-takase.png') : undefined),
     entry(majimaKnown ? '真島 亮' : '???', majimaText, isCurrentBeat(current, '古い共有フォルダ') || isCurrentBeat(current, '真島亮の名前') || isCurrentBeat(current, '二十二時十四分') || isCurrentBeat(current, '未送信メール'), majimaKnown ? assetPath('visuals/majima-file.png') : undefined),
-    entry(familyKnown ? '実家' : '???', familyText, isCurrentBeat(current, '梨') || isCurrentBeat(current, '親に説明')),
+    entry(familyKnown ? '実家' : '???', familyText, isCurrentBeat(current, '梨') || isCurrentBeat(current, '親に説明'), familyKnown ? assetPath('visuals/portrait-family.png') : undefined),
   ].join('');
 }
 
@@ -1429,14 +1497,14 @@ function renderItems(current: State): string {
       name: '単発バイトアプリ',
       text: '会社以外にも働けると教えてくれた。休みの日まで働けることも教えてくれた。',
       url: 'https://www.amazon.co.jp/dp/B00CHFPYU2',
-      image: assetPath('visuals/item-gigwork.png'),
+      image: assetPath('visuals/item-timee-app.png'),
     },
     {
       show: hasReached(current, 'Uber Eats'),
       name: '配達バッグ',
       text: '自由な働き方の象徴。中身より、坂道の記憶のほうが重い。',
       url: 'https://www.amazon.co.jp/dp/B0GR35ZPQ5',
-      image: assetPath('visuals/item-gigwork.png'),
+      image: assetPath('visuals/item-delivery-bag.png'),
     },
     {
       show: hasReached(current, '誕生日'),
@@ -1445,7 +1513,7 @@ function renderItems(current: State): string {
         ? '水野が「表が覚えてたんだ」と笑った箱。中身より、買った事実のほうが残った。'
         : '買わなかったもの。持ち物ではないのに、なぜか長く残る。',
       url: 'https://www.amazon.co.jp/dp/B095K73GFM',
-      image: assetPath('visuals/item-gigwork.png'),
+      image: assetPath('visuals/item-gift-box.png'),
     },
     {
       show: hasReached(current, '冷蔵庫'),
@@ -1495,7 +1563,7 @@ function renderNotes(current: State): string {
       show: hasReached(current, 'ミニマリスト'),
       title: 'ミニマリスト',
       text: 'ものを減らしても、働きたくない理由までは捨てられない。ただ、机の角は見える。',
-      image: assetPath('visuals/item-creator.png'),
+      image: assetPath('visuals/note-minimalism.png'),
     },
     {
       show: hasReached(current, 'Timee'),
@@ -1554,7 +1622,7 @@ function renderNotes(current: State): string {
     .join('');
 }
 
-function renderLog(current: State): string {
+function renderMainLog(current: State): string {
   const entries = current.log.length > 0 ? current.log : [makeLogEntry(current)];
 
   return entries
@@ -1562,14 +1630,34 @@ function renderLog(current: State): string {
     .reverse()
     .map(
       (entry) => `
-        <article class="log-entry">
+        <article class="main-log-entry">
           <p class="log-meta">${entry.year}</p>
-          <strong>${escapeHtml(entry.title)}</strong>
-          ${entry.lines.map((line) => `<span>${escapeHtml(line)}</span>`).join('')}
+          <h3>${escapeHtml(entry.title)}</h3>
+          ${entry.lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')}
         </article>
       `,
     )
     .join('');
+}
+
+function renderSettings(current: State): string {
+  return `
+    <div class="reader-settings" aria-label="表示設定">
+      <p class="settings-label">表示設定</p>
+      <div class="setting-row">
+        <span>文字</span>
+        <div class="setting-buttons">
+          <button type="button" data-text-size="small" class="${current.textSize === 'small' ? 'is-active' : ''}">小</button>
+          <button type="button" data-text-size="medium" class="${current.textSize === 'medium' ? 'is-active' : ''}">中</button>
+          <button type="button" data-text-size="large" class="${current.textSize === 'large' ? 'is-active' : ''}">大</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <span>演出</span>
+        <button type="button" data-setting="animations" class="${current.animations ? 'is-active' : ''}">${current.animations ? 'ON' : 'OFF'}</button>
+      </div>
+    </div>
+  `;
 }
 
 function getPlaceLabel(title: string): string {
