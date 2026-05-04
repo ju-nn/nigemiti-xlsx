@@ -45,6 +45,7 @@ type Beat = {
 const has = (state: State, flag: string) => state.flags.includes(flag);
 const prefersReducedMotion = () => !state.animations || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SAVE_KEY = 'escape-xlsx-save-v1';
+const SHARE_URL = 'https://jun-rlst.github.io/nigemiti-xlsx/';
 const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
 
 const beatIndex = (fragment: string) => beats.findIndex((beat) => beat.title.includes(fragment));
@@ -1079,6 +1080,15 @@ function restartFromEnding(): void {
   render();
 }
 
+function getXPostUrl(): string {
+  const params = new URLSearchParams({
+    text: '無料ノベルゲーム『逃げ道.xlsx』をクリアしました。\n\n会社員が「月曜の朝」から逃げ道を探す、短編分岐ノベルゲーム。',
+    url: SHARE_URL,
+    hashtags: '逃げ道xlsx',
+  });
+  return `https://twitter.com/intent/tweet?${params.toString()}`;
+}
+
 function makeLogEntry(current: State): LogEntry {
   const beat = beats[current.beat];
   const lines = current.inlineResult ? [`選択: ${current.inlineResult}`, ...beat.body(current)] : beat.body(current);
@@ -1139,8 +1149,20 @@ function render(): void {
     if (nodes.title) nodes.title.textContent = '佐久間の生活は、どこかへ着いた。';
     if (nodes.body) nodes.body.innerHTML = `<p class="ending-card">${getEnding()}</p>`;
     if (nodes.choices) {
-      nodes.choices.innerHTML = '<button class="continue" type="button"><span>最初から</span><small>逃げ道.xlsx を開き直す</small></button>';
-      nodes.choices.querySelector<HTMLButtonElement>('button')?.addEventListener('click', restartFromEnding);
+      const xPostUrl = escapeHtml(getXPostUrl());
+      nodes.choices.innerHTML = `
+        <div class="ending-actions">
+          <button class="continue" type="button" data-ending-action="restart">
+            <span>最初から</span>
+            <small>逃げ道.xlsx を開き直す</small>
+          </button>
+          <a class="x-post" href="${xPostUrl}" rel="noopener noreferrer">
+            <span>Xで感想を投稿</span>
+            <small>ネタバレなしの定型文で開く</small>
+          </a>
+        </div>
+      `;
+      nodes.choices.querySelector<HTMLButtonElement>('[data-ending-action="restart"]')?.addEventListener('click', restartFromEnding);
       animateChoices();
     }
     saveState();
@@ -1245,7 +1267,7 @@ function animateChoices(): void {
   if (!nodes.choices || prefersReducedMotion()) return;
 
   motionAnimate(
-    Array.from(nodes.choices.querySelectorAll('button')),
+    Array.from(nodes.choices.querySelectorAll('button, a')),
     { opacity: [0, 1], y: [8, 0] },
     { duration: 0.24, delay: 0.04, ease: 'easeOut' },
   );

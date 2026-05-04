@@ -573,7 +573,14 @@ h2 {
   background: linear-gradient(180deg, rgb(21 20 18 / 0), rgb(21 20 18 / 0.76) 28%);
 }
 
+.ending-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .choices button,
+.choices a,
 .reader-action {
   border: 1px solid rgb(238 233 223 / 0.18);
   color: var(--text);
@@ -581,13 +588,16 @@ h2 {
   cursor: pointer;
 }
 
-.choices button {
+.choices button,
+.choices a {
   display: grid;
   gap: 6px;
   width: 100%;
   min-height: 76px;
   padding: 15px 17px;
+  color: var(--text);
   text-align: left;
+  text-decoration: none;
   transition:
     border-color 140ms ease,
     background 140ms ease,
@@ -596,6 +606,8 @@ h2 {
 
 .choices button:hover,
 .choices button:focus-visible,
+.choices a:hover,
+.choices a:focus-visible,
 .reader-action:hover,
 .reader-action.is-active {
   border-color: var(--accent);
@@ -603,7 +615,9 @@ h2 {
 }
 
 .choices button:hover,
-.choices button:focus-visible {
+.choices button:focus-visible,
+.choices a:hover,
+.choices a:focus-visible {
   transform: translateY(-1px);
 }
 
@@ -821,7 +835,8 @@ h2 {
     padding-top: 12px;
   }
 
-  .choices button {
+  .choices button,
+  .choices a {
     min-height: 64px;
     padding: 12px 15px;
   }
@@ -848,8 +863,13 @@ h2 {
     gap: 6px;
   }
 
-  .choices button {
+  .choices button,
+  .choices a {
     min-height: 82px;
+  }
+
+  .ending-actions {
+    grid-template-columns: 1fr;
   }
 
   .story {
@@ -876,6 +896,7 @@ h2 {
 
 @media (prefers-reduced-motion: reduce) {
   .choices button,
+  .choices a,
   .story-reader::before,
   .story-reader::after {
     transition: none;
