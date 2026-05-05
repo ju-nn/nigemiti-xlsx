@@ -5,10 +5,10 @@ Viteで作った分岐読み物ゲームです。
 ## GitHub Pagesで公開する
 
 このプロジェクトはリポジトリ名 `nigemiti-xlsx` で公開する想定です。
-公開URLは次の形になります。
+公開URLは次のURLです。
 
 ```text
-https://<GitHubユーザー名>.github.io/nigemiti-xlsx/
+https://ju-nn.github.io/nigemiti-xlsx/
 ```
 
 手順:
@@ -17,7 +17,7 @@ https://<GitHubユーザー名>.github.io/nigemiti-xlsx/
 2. このフォルダで下のコマンドを実行する
 
 ```powershell
-git remote add origin https://github.com/<GitHubユーザー名>/nigemiti-xlsx.git
+git remote add origin https://github.com/ju-nn/nigemiti-xlsx.git
 git push -u origin main
 ```
 

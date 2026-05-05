@@ -45,7 +45,8 @@ type Beat = {
 const has = (state: State, flag: string) => state.flags.includes(flag);
 const prefersReducedMotion = () => !state.animations || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SAVE_KEY = 'escape-xlsx-save-v1';
-const SHARE_URL = 'https://jun-rlst.github.io/nigemiti-xlsx/';
+const SHARE_URL = 'https://ju-nn.github.io/nigemiti-xlsx/';
+const CREATOR_SITE_URL = 'https://ju-nn.github.io/archive/';
 const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
 
 const beatIndex = (fragment: string) => beats.findIndex((beat) => beat.title.includes(fragment));
@@ -1150,13 +1151,18 @@ function render(): void {
     if (nodes.body) nodes.body.innerHTML = `<p class="ending-card">${getEnding()}</p>`;
     if (nodes.choices) {
       const xPostUrl = escapeHtml(getXPostUrl());
+      const creatorUrl = escapeHtml(CREATOR_SITE_URL);
       nodes.choices.innerHTML = `
         <div class="ending-actions">
           <button class="continue" type="button" data-ending-action="restart">
             <span>最初から</span>
             <small>逃げ道.xlsx を開き直す</small>
           </button>
-          <a class="x-post" href="${xPostUrl}" rel="noopener noreferrer">
+          <a class="creator-link" href="${creatorUrl}" target="_blank" rel="noopener noreferrer">
+            <span>作者サイトへ</span>
+            <small>作品、note、SNS、ラジオ、vlogへ</small>
+          </a>
+          <a class="x-post" href="${xPostUrl}" target="_blank" rel="noopener noreferrer">
             <span>Xで感想を投稿</span>
             <small>ネタバレなしの定型文で開く</small>
           </a>
